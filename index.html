@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Segnale Analogico</title>
+  <!-- Includi le librerie di Highcharts -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/boost.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+  <style>
+  body {
+     display: flex;
+     justify-content: left; /* Centra orizzontalmente il contenuto della pagina */
+     align-items: center; /* Centra verticalmente il contenuto della pagina */
+     height: 100vh; /* Altezza del corpo uguale all'altezza della finestra del browser */
+   }
+    #analogChart {
+      width: 100vw; /* Larghezza al 100% del viewport */
+      height: 100vh; /* Altezza al 100% del viewport */
+      margin: 0 auto;
+    }
+    h2 {
+      font-family: Arial;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Aggiungi un elemento vuoto con un ID per il grafico Highcharts -->
+  <div id="analogChart" class="container"></div>
+  <script>
+    const socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+
+    // Crea una variabile per memorizzare il grafico Highcharts
+    let chart;
+
+    // Funzione per aggiornare il grafico con i nuovi dati
+    //Inoltre impostando il parametro di chart.series[0].data.lenght si può impostare il numero di punti visibili nel plot, se si supera il valore inizia lo shift
+    function updateChart(analogValue, time) {
+      chart.series[0].addPoint({ x: time, y: analogValue }, true, chart.series[0].data.length >= 1000);
+    }
+
+    // Configura il grafico Highcharts
+    chart = Highcharts.chart('analogChart', {
+      chart: {
+        type: 'line',
+        animation: false, //lascia così per forza
+        zoomType: 'xy', //fa in modo che sia possibile fare zoom su x e su y
+      },
+      tooltip: {
+    enabled: false
+},
+      plotOptions: {
+        line: {
+          animation: true,
+          turboThreshold: 10, // Limite di punti dati dopo il quale viene attivata la modalità turbo
+          dataLabels: { enabled: false },
+          marker: {
+            enabled: false,
+               radius: 0
+          },
+        },
+        series: { color: '#ff0000' }
+      },
+      title: {
+        text: 'Segnale Analogico',
+      },
+      xAxis: {
+        type: 'datetime',
+        title: {
+          text: 'Tempo',
+        },
+      tickInterval: 1000, // Intervallo in millisecondi (1 secondo)
+      dateTimeLabelFormats: {
+  second: '%H:%M:%S', // Visualizza etichette solo per secondi
+  minute: '%H:%M',    // Visualizza etichette solo per minuti
+},
+      },
+      yAxis: {
+        title: {
+          text: 'Valore Analogico',
+        },
+        min: -1000,   // Valore minimo sull'asse y
+       max: 1000, // Valore massimo sull'asse y
+      },
+      series: [{
+        name: 'Segnale Analogico',
+        data: [],
+      }],
+    });
+
+    socket.onmessage = function(event) {
+      const analogValue = parseFloat(event.data);
+      const time = new Date().getTime();
+      updateChart(analogValue, time);
+    };
+  </script>
+</body>
+</html>
